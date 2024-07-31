@@ -91,11 +91,27 @@ class Experts(nn.Module):
         return output, counts, route_prob.sum(0), len(dropped), route_prob_max
 
 class SwitchTransformerLayer:
-    def __init__(self):
-        ...
+    def __init__(self,
+                 d_model: int,
+                 attention: nn.MultiheadAttention,
+                 feed_forward: Experts,
+                 dropout_rate: float
+                 ):
+        self.d_model = d_model
+        self.attn = attention
+        self.feed_forward = feed_forward
+        self.dropout = nn.Dropout(dropout_rate)
+        self.norm_1 = nn.LayerNorm([d_model])
+        self.norm_2 = nn.LayerNorm([d_model])
 
-    def forward(self):
-        ...
+    def forward(self, x):
+        z = self.norm_1(x)
+        attn, _ = self.attn(query=z, key=z, value=z)
+        x = x + self.dropout(attn)
+        z = self.norm_2(x)
+        z, counts, route_prob, n_dropped, route_prob_max = self.feed_forward(z)
+        x = x + self.dropout(z)
+        return x, counts, route_prob, n_dropped, route_prob_max
 
 
 class SwitchTransformer:
